@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+<!--
+localhost
+msbuild sln\build.proj /t:clean,source,restore,upgrade,build,test "/p:SourceKey=xxx" "/p:SourceUser=xxx"
+
+github actions
+msbuild sln\build.proj /t:clean,source,restore,upgrade,build,test "/p:SourceKey=${{secrets.PACKAGES}}" "/p:SourceUser=${{github.repositoryowner}}"
+-->
+
+
+    <PropertyGroup>
+        <Solution>$(MSBuildProjectDirectory)\alby.cxxnuget.consumer.sln</Solution>
+
+        <Configuration Condition="'$(Configuration)' == '' ">Debug</Configuration>
+        <Platform      Condition="'$(Platform)'      == '' ">x64</Platform>
+
+        <TestRunner>vstest.console.exe</TestRunner>
+        <TestResultsFolder>$(MSBuildProjectDirectory)\TestResults</TestResultsFolder>
+
+        <Source>github</Source>
+        <SourceKey  Condition="'$(SourceKey)'  == '' ">UNDEFINED</SourceKey>
+        <SourceUser Condition="'$(SourceUser)' == '' ">UNDEFINED</SourceUser>
+        <SourceUrl  Condition="'$(SourceUrl)'  == '' ">https://nuget.pkg.github.com/$(SourceUser)/index.json</SourceUrl>
+    </PropertyGroup>
+
+    <Target Name="clean" >
+        <ItemGroup>
+            <FoldersToDelete Include="$( [System.IO.Directory]::GetDirectories( &quot;.\mytest&quot;,&quot;obj&quot;,SearchOption.AllDirectories ) )"/>
+            <FoldersToDelete Include="$( [System.IO.Directory]::GetDirectories( &quot;.\mytest&quot;,&quot;bin&quot;,SearchOption.AllDirectories ) )"/>
+            <FoldersToDelete Include="$( [System.IO.Directory]::GetDirectories( &quot;.\mytest&quot;,&quot;lib&quot;,SearchOption.AllDirectories ) )"/>
+            <FilesToDelete   Include="$(TestResultsFolder)\*.trx"/>
+        </ItemGroup>
+
+        <RemoveDir Directories="@(FoldersToDelete)" />
+        <Delete    Files="@(FilesToDelete)" />
+    </Target>
+
+    <Target Name="source">
+        <Exec Command="nuget sources remove -name &quot;$(Source)&quot; -verbosity detailed" IgnoreExitCode="true"  ContinueOnError="true" />
+        <Exec Command="nuget sources add -name &quot;$(Source)&quot; -source &quot;$(SourceUrl)&quot; -username &quot;$(SourceUser)&quot; -password &quot;$(SourceKey)&quot; -verbosity detailed" EchoOff="true" />
+        <Exec Command="nuget setapikey &quot;$(SourceKey)&quot; -source &quot;$(SourceUrl)&quot; -verbosity detailed &gt; NUL" EchoOff="true"  />
+    </Target>
+
+    <Target Name="restore">
+        <Exec Command="nuget restore &quot;$(Solution)&quot; -source &quot;$(Source)&quot; -verbosity detailed -noninteractive" />
+    </Target>
+
+    <Target Name="upgrade">
+        <Exec Command="nuget update &quot;$(Solution)&quot; -id alby.mylibrary -source &quot;$(Source)&quot; -verbosity detailed -noninteractive" />
+    </Target>
+
+    <Target Name="build">
+        <Message Text="$(Configuration)"/>
+        <Message Text="$(Platform)"/>
+        <MSBuild Projects="$(Solution)" Targets="rebuild" />
+    </Target>
+
+    <Target Name="test">
+        <Exec Command="vstest.console.exe &quot;$(MSBuildProjectDirectory)\mytest\bin\mytest.dll&quot; --logger:trx" />
+    </Target>
+
+</Project>
+

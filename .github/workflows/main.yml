@@ -1,0 +1,37 @@
+
+on: [push]
+
+jobs:
+
+    build:
+        runs-on: windows-latest
+
+        steps:
+        - name: msbuild setup
+          uses: microsoft/setup-msbuild@v1.0.0
+
+        - name: vstest setup
+          uses: darenm/Setup-VSTest@v1
+
+        - name: env
+          run:  set
+          shell: cmd
+
+        - name: checkout 
+          uses: actions/checkout@master 
+
+        - name: dir
+          run:  get-childitem
+
+        - name: source 
+          env:
+            THE_SOURCE_KEY: ${{secrets.PACKAGES}}
+          run:  msbuild sln2\build.proj /t:source "/p:SourceKey=%THE_SOURCE_KEY%" "/p:SourceUser=%GITHUB_REPOSITORY_OWNER%"
+          shell: cmd
+
+        - name: compile 
+          run:  msbuild sln2\build.proj /t:clean,restore,upgrade,build 
+
+        - name: test 
+          run:  msbuild sln2\build.proj /t:test 
+
