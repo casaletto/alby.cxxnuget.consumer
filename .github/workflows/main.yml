@@ -26,12 +26,12 @@ jobs:
         - name: source 
           env:
             THE_SOURCE_KEY: ${{secrets.PACKAGES}}
-          run:  msbuild sln2\build.proj /t:source "/p:SourceKey=%THE_SOURCE_KEY%" "/p:SourceUser=%GITHUB_REPOSITORY_OWNER%"
+          run:  msbuild sln\build.proj /t:source "/p:SourceKey=%THE_SOURCE_KEY%" "/p:SourceUser=%GITHUB_REPOSITORY_OWNER%"
           shell: cmd
 
         - name: compile 
-          run:  msbuild sln2\build.proj /t:clean,restore,upgrade,build 
+          run:  msbuild sln\build.proj /t:clean,restore,upgrade,build 
 
         - name: test 
-          run:  msbuild sln2\build.proj /t:test 
+          run:  msbuild sln\build.proj /t:test 
 
