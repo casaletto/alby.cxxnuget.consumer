@@ -8,6 +8,7 @@
 #include <algorithm> 
 #include <cctype>
 #include <locale>
+#include <regex>
 
 #include "helper.h"
 
@@ -19,18 +20,24 @@ namespace mytest
 
         str2.erase(
             str2.begin(),
-            std::find_if(str2.begin(), str2.end(), [](int ch)
-        {
-            return !std::isspace(ch);
-        }));
+            std::find_if(
+                str2.begin(),
+                str2.end(),
+                [](int ch)
+                {
+                    return !std::isspace(ch);
+                }));
 
 
         str2.erase(
-            std::find_if(str2.rbegin(), str2.rend(), [](int ch)
-        {
-            return !std::isspace(ch);
-        }).base(),
-            str2.end());
+            std::find_if(
+                str2.rbegin(),
+                str2.rend(),
+                [](int ch)
+                {
+                    return !std::isspace(ch);
+                }).base(),
+            str2.end() );
 
         return str2;
     }
@@ -40,8 +47,35 @@ namespace mytest
         std::ifstream      instream(file);
         std::ostringstream ss;
 
-        ss << instream.rdbuf();
-        return trim(ss.str());
+        ss << instream.rdbuf() ;
+
+        return trim( ss.str() ) ;
+    }
+
+    std::string helper::findFile( const std::string& folder, const std::string& file )
+    {
+        auto pattern = std::regex_replace( file, std::regex( R"(\.)" ), R"(\.)" ) ;
+        auto target  = "(.*)" + pattern + "$" ;
+
+        std::regex regex( target )   ;
+
+        auto it    = std::filesystem::recursive_directory_iterator( folder ) ;
+        auto itend = std::filesystem::end(it) ;
+
+        auto result = std::find_if(
+                            std::filesystem::begin( it ),
+                            itend,
+                            [ &regex ] ( auto& x )
+                            {
+                                return std::regex_match(
+                                            x.path().string(),
+                                            regex ) ;
+                            } ) ;
+
+        if ( result == itend )
+             return "" ;
+
+        return result->path().string() ;
     }
 }
 
