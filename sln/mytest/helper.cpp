@@ -77,5 +77,26 @@ namespace mytest
 
         return result->path().string() ;
     }
+
+    std::vector<std::string> helper::findFiles( const std::string& folder, const std::string& file )
+    {
+        auto pattern = std::regex_replace( file, std::regex( R"(\.)" ), R"(\.)" ) ;
+        auto target  = "(.*)" + pattern + "$" ;
+
+        std::regex regex( target ) ;
+
+        std::vector<std::string> list ;
+
+        for ( auto& p : std::filesystem::recursive_directory_iterator(folder ) )
+        {
+            auto file = p.path() ;
+
+            if ( std::regex_match( p.path().string(), regex ) )
+                 list.push_back( p.path().string() ) ;
+        }
+
+        return list ;
+    }
+
 }
 

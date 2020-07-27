@@ -30,7 +30,7 @@ jobs:
           shell: cmd
 
         - name: compile 
-          run:  msbuild sln\build.proj /t:clean,restore,upgrade,build 
+          run:  msbuild sln\build.proj /t:clean,restore,build 
 
         - name: test 
           run:  msbuild sln\build.proj /t:test 

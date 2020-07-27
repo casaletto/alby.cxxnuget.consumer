@@ -9,18 +9,23 @@
 #include <algorithm>
 #include <regex>
 
+#include <alby.mylibrary/alby.myclass.h>
 #include "helper.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 //
-// get-package
-// uninstall-package alby.mylibrary
-// install-package alby.mylibrary -source "github"
-// update-package alby.mylibrary -source "github"
+// install: 
+//   get-package
+//   uninstall-package alby.mylibrary
+//   install-package alby.mylibrary -source "github"
+//
+// upgrade: 
+//   update-package alby.mylibrary -source "github"
+//   or
+//   msbuild build.proj /t:upgrade
 //
 
-#include <alby.mylibrary/alby.myclass.h>
 
 namespace mytest
 {
@@ -28,87 +33,104 @@ namespace mytest
 	{
 	public:
 		
-        TEST_METHOD(CurrentFolder)
+        TEST_METHOD( TestFolder )
         {
             auto dir = std::filesystem::current_path() ;
 
             Logger::WriteMessage( dir.c_str() );
         }
 
-        TEST_METHOD(FindFile)
+        TEST_METHOD( BinFolder )
+        {
+            std::string folder = R"(.)" ;
+
+            for ( auto& p : std::filesystem::recursive_directory_iterator( folder ) )
+            {
+                auto file = p.path() ;
+                Logger::WriteMessage( file.c_str() ) ;
+            }
+        }
+
+        TEST_METHOD( PackagesFolder )
         {
             std::string folder = R"(..\..\packages)" ;
+
+            for ( auto& p : std::filesystem::recursive_directory_iterator( folder ) )
+            {
+                auto file = p.path() ;
+                Logger::WriteMessage( file.c_str() ) ;
+            }
+        }
+
+        TEST_METHOD( SolutionFolder )
+        {
+            std::string folder = R"(..\..\..\sln)";
+
+            for ( auto& p : std::filesystem::recursive_directory_iterator(folder) )
+            {
+                auto file = p.path();
+                Logger::WriteMessage(file.c_str());
+            }
+        }
+
+        TEST_METHOD( FindVersionFile )
+        {
+            std::string folder = R"(..\..\..)" ;
             std::string file   = "alby.mylibrary.version.txt" ;
 
             auto result = helper::findFile( folder, file ) ;
 
             Logger::WriteMessage( result.c_str() ) ;
 
-            //..\..\packages\alby.mylibrary.1.0.3\build\alby.mylibrary.version.txt
+            // ..\..\..\sln\mytest\bin\alby.mylibrary.version.txt 
 
-//ALBy fix me
-            std::regex regex( R"(\\packages\\alby.mylibrary(.*)\\build\\alby.mylibrary.version.txt)" )   ;
+            std::regex regex( R"((.*)\\bin\\alby\.mylibrary\.version\.txt$)" ) ;
 
             Assert::IsTrue( std::regex_match( result, regex ) ) ;
         }
 
-        TEST_METHOD(PackagesFiles2)
+//ALBY FIX ME
+        TEST_METHOD( FindVersionFiles )
         {
-            auto folder = R"(..\..\packages)" ; // R"(..\packages)" ;
+            std::regex regex1( R"((.*)\\bin\\alby\.mylibrary\.version\.txt$)" ) ;
+            //std::regex regex2( R"((.*)\\packages\\(.*)\\alby\.mylibrary\.version\.txt$)" ) ;
 
-            //for ( auto& p : std::filesystem::recursive_directory_iterator(folder) )
-            //{
-            //    auto file = p.path() ;
-            //    Logger::WriteMessage( file.c_str() ) ;
-            //}
+std::regex regex2( R"((.*)\\packages\\(.*)alby.mylibrary.version.txt$)" ) ;
 
-            std::string file = "alby.mylibrary.version.txt" ;
+            std::string folder = R"(..\..\..)" ;
+            std::string file   = "alby.mylibrary.version.txt" ;
 
-            auto file2 = std::regex_replace( file, std::regex( R"(\.)" ), R"(\.)" ) ;
+            auto list = helper::findFiles( folder, file ) ;
 
-            std::string target = "(.*)" + file2 + "$" ;
+            for ( auto& f : list )
+                  Logger::WriteMessage( f.c_str() ) ;
 
-            Logger::WriteMessage( target.c_str() ) ;
+            // ..\..\..\sln\mytest\bin\alby.mylibrary.version.txt
+            // ..\..\..\sln\packages\alby.mylibrary.1.0.3\build\alby.mylibrary.version.txt
+            // ..\..\..\sln\packages\alby.mylibrary.1.0.6\build\native\lib\alby.mylibrary.version.txt
 
+            auto result1 = std::find_if( list.begin(),
+                                         list.end(),
+                                         [ &regex1 ] ( auto& f )
+                                         {
+                                            return std::regex_match( f, regex1 ) ;
+                                         } ) ;
 
-            std::regex regex( target )   ;
-            //std::regex regex( R"((.*)version\.txt$)" )   ;
+            auto result2 = std::find_if( list.begin(),
+                                         list.end(),
+                                         [ &regex2 ] ( auto& f )
+                                         {
+                                            return std::regex_match( f, regex2 ) ;
+                                         } ) ;
 
-            auto it = std::filesystem::recursive_directory_iterator(folder) ;
-
-            auto result = std::find_if( std::filesystem::begin( it ),
-                                        std::filesystem::end( it ),
-                                        [ &regex] ( auto& x )
-                                        {
-                                            Logger::WriteMessage( x.path().c_str() ) ;
-                                            //std::string str =  ;
-                                            return std::regex_match( x.path().string(), regex ) ;
-                                        } ) ;
-
-            Logger::WriteMessage( "RESULT" ) ;
-            if ( result != std::filesystem::end( it ) )
-                 Logger::WriteMessage( result->path().c_str() ) ;
-            else
-                 Logger::WriteMessage( "NULL" ) ;
-
-            //auto it = std::filesystem::recursive_directory_iterator( folder ) ;
-
-            //while (true)
-            //{
-            //    auto file = it.path() ;
-            //    Logger::WriteMessage( file.c_str() ) ;
-
-            //    it++ ;
-            //}
-
-
-
+            Assert::IsTrue( result1->size() == 1 ) ;
+            Assert::IsTrue( result2->size() >= 1 ) ;
 
         }
 
-        TEST_METHOD(ReadFile)
+        TEST_METHOD( VersionFile )
         {
-            auto file = R"(..\..\..\nupkg\alby.mylibrary.version.txt)" ;
+            auto file = R"(.\alby.mylibrary.version.txt)" ;
 
             auto txt  = helper::slurp( file ) ;
             txt = std::string( "#" ) + txt + std::string( "#" ) ;
@@ -116,14 +138,14 @@ namespace mytest
             Logger::WriteMessage( txt.c_str() ) ;
         }
 
-        TEST_METHOD(NugetPackageVersionTest)
+        TEST_METHOD( LibraryVersion )
         {
-            auto file = R"(..\..\..\nupkg\alby.mylibrary.version.txt)" ;
-            auto expectedVersion = helper::slurp( file ) ;
+            auto file = R"(.\alby.mylibrary.version.txt)" ;
+            auto expectedVersion = helper::slurp( file ) + ".0" ;
 
             alby::mylibrary::myclass m ;
 
-            auto actualVersion = m.version() ;
+            auto actualVersion = m.version()  ;
 
             Logger::WriteMessage( expectedVersion.c_str() ) ;
             Logger::WriteMessage( actualVersion.c_str()   ) ;
