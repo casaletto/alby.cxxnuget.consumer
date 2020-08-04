@@ -89,13 +89,13 @@ namespace mytest
             Assert::IsTrue( std::regex_match( result, regex ) ) ;
         }
 
-//ALBY FIX ME
         TEST_METHOD( FindVersionFiles )
         {
-            std::regex regex1( R"((.*)\\bin\\alby\.mylibrary\.version\.txt$)" ) ;
-            //std::regex regex2( R"((.*)\\packages\\(.*)\\alby\.mylibrary\.version\.txt$)" ) ;
+            // ..\..\..\sln\mytest\bin\alby.mylibrary.version.txt
+            // ..\..\..\sln\packages\alby.mylibrary.1.0.3\build\alby.mylibrary.version.txt
 
-std::regex regex2( R"((.*)\\packages\\(.*)alby.mylibrary.version.txt$)" ) ;
+            std::regex regex1( R"((.*)\\bin\\alby\.mylibrary\.version\.txt$)"            ) ;
+            std::regex regex2( R"((.*)\\packages\\(.*)\\alby\.mylibrary\.version\.txt$)" ) ;
 
             std::string folder = R"(..\..\..)" ;
             std::string file   = "alby.mylibrary.version.txt" ;
@@ -105,27 +105,25 @@ std::regex regex2( R"((.*)\\packages\\(.*)alby.mylibrary.version.txt$)" ) ;
             for ( auto& f : list )
                   Logger::WriteMessage( f.c_str() ) ;
 
-            // ..\..\..\sln\mytest\bin\alby.mylibrary.version.txt
-            // ..\..\..\sln\packages\alby.mylibrary.1.0.3\build\alby.mylibrary.version.txt
-            // ..\..\..\sln\packages\alby.mylibrary.1.0.6\build\native\lib\alby.mylibrary.version.txt
-
             auto result1 = std::find_if( list.begin(),
                                          list.end(),
-                                         [ &regex1 ] ( auto& f )
+                                         [ &regex1 ] ( const auto& f )
                                          {
                                             return std::regex_match( f, regex1 ) ;
                                          } ) ;
 
             auto result2 = std::find_if( list.begin(),
                                          list.end(),
-                                         [ &regex2 ] ( auto& f )
+                                         [ &regex2 ] ( const auto& f )
                                          {
                                             return std::regex_match( f, regex2 ) ;
                                          } ) ;
 
-            Assert::IsTrue( result1->size() == 1 ) ;
-            Assert::IsTrue( result2->size() >= 1 ) ;
+            Assert::IsTrue( result1 != list.end() ) ;
+            Assert::IsTrue( result2 != list.end() ) ;
 
+            Logger::WriteMessage( result1->c_str() ) ;
+            Logger::WriteMessage( result2->c_str() ) ;
         }
 
         TEST_METHOD( VersionFile )
